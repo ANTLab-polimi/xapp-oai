@@ -4,48 +4,43 @@ from time import sleep
 
 def main():
 
-    rnti = input("Enter RNTI:")
-    rnti = int(rnti)
+    # hardcoded slice policies
+    slice_1_policy = slice_policy_m()
+    slice_1_policy.s_id = 1
+    slice_1_policy.min_ratio = 10
+    slice_1_policy.max_ratio = 40
 
-    prop_1 = input("Is prop_1 true? (y/n)")
-    if prop_1 == "y":
-        prop_1 = True
-    else:
-        prop_1 = False
-    prop_2 = float(input("Enter prop_2 (float)"))
+    slice_2_policy = slice_policy_m()
+    slice_2_policy.s_id = 2
+    slice_2_policy.min_ratio = 20
+    slice_2_policy.max_ratio = 80
 
-    print("Sending control message")
+    # rrmPolicyRatio 
+    rrmPolicyRatio = rrmPolicyRatio_m()
+    rrmPolicyRatio.slice_policies.extend([slice_1_policy, slice_2_policy])
+
+    print("Ready to send the following policies:")
+    print(rrmPolicyRatio)
+
+    # create control request
+    rc_req = RAN_control_request()
+
+    # create control elements
+    rc_element = RAN_param_map_entry()
+    rc_element.key = RAN_parameter.RRM_POLICY_RATIO
+    rc_element.rrmPolicyRatio.CopyFrom(rrmPolicyRatio)
+
+    # add elements in map of rc request
+    rc_req.target_param_map.extend([rc_element])
+
+    # put into master message and send
     master_mess = RAN_message()
     master_mess.msg_type = RAN_message_type.CONTROL
-    inner_mess = RAN_control_request()
-    
-    # ue list map entry
-    ue_list_control_element = RAN_param_map_entry()
-    ue_list_control_element.key = RAN_parameter.UE_LIST
-    
-    # ue list message 
-    ue_list_message = ue_list_m()
-    ue_list_message.connected_ues = 1 # this will not be processed by the gnb, it can be anything
+    master_mess.ran_control_request.CopyFrom(rc_req)
 
-    # ue info message
-    ue_info_message = ue_info_m()
-    ue_info_message.rnti = rnti
-    ue_info_message.prop_1 = prop_1
-    ue_info_message.prop_2 = prop_2
-
-    # put info message into repeated field of ue list message
-    ue_list_message.ue_info.extend([ue_info_message])
-
-    # put ue_list_message into the value of the control map entry
-    ue_list_control_element.ue_list.CopyFrom(ue_list_message)
-
-    # finalize and send
-    inner_mess.target_param_map.extend([ue_list_control_element])
-    master_mess.ran_control_request.CopyFrom(inner_mess)
-    print(master_mess)
     buf = master_mess.SerializeToString()
     xapp_control_ricbypass.send_to_socket(buf)
-
+    print("Control message sent, exiting...")
 
 
 

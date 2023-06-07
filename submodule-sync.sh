@@ -2,4 +2,5 @@
 
 git submodule update --init
 cd base-xapp/oai-oran-protolib
-git checkout mrn-base
+git pull
+git checkout deliverable_neu
